@@ -1,0 +1,395 @@
+Sub EmployeeData_Start()
+'Delete & Insert Sheet {RawData}
+    Delete_Sheets
+    Insert_Sheets
+'1] Import EmployeeData.xlsx
+    Import_Data
+'2] Remove Column{B}[NationalIDNumber]
+'3] Remove Column{C}[ContactID]
+'4] Remove Column{D}[LoginID]
+    Delete_Column_B_C_D
+'5] Rename Column{C}[Title] to [Employee Name]
+    Change_Title_To_Employee_Name
+'6] Column{G}[BirthDate] keep only date remove "00:00"
+    BirthDate
+'7] Remove Column{N & O}[CurrentFlag | rowguid]
+    Remove_Column_CurrentFlag_rowguid
+'8] Rename Column{F}[Employee Name] Change all to upper case
+'9] Rename Column{F}[Employee Name] use trim& Clean to remove unwated space
+  UpperCase_Employee_Name
+'10] Column{H}[MaritalStatus] change M = Married and S = Single
+  MaritalStatus
+  '11] Column{I}[Gender] change M = Male and F = Female
+  Gender
+  '12] Insert New Column after {G} name it as [Birth Born] you need to extract Year from BirthDate Column
+     Birth_Born_Year
+'13] Insert New Column after {H} name it as [Age] you need to calculate Age of a person.
+     Age
+'14] Calculate the length of service for each of the employees using the column {J}[HireDate] till today.Name the Column as Length of Service
+Length_of_Service
+Years_of_Service
+'15] How many employees fit into the age group of 20-30,30-40,40-50 and over 50
+'Formula
+'=IF(F2>50,"50+",IF(F2>40,"40-50",IF(F2>30,"31-40",IF(F2>20,"20-30"))))
+Age_Group
+'16] Create a new field for the Salary Group. Group according to the following:  a.Over $4000 b. 3000 to 4000 c. 2000 to 3000 d. 1000 to 2000 e. 0 to 1000
+'Formula
+'=IF(M2>4000,"4+",IF(M2>3000,"4000-3000",IF(M2>3000,"3100-4000",IF(M2>2000,"2000-3000",IF(M2>1000,"1000-2000",IF(M2<1000,"Less then 1000"))))))
+ Salary_Group
+ 
+ 
+'1. Create a pivot table displaying the number of employees by Salary Group
+''************************************************************************
+PivotTable_EmployeesbySalaryGroup
+''************************************************************************
+ 
+MsgBox "Finish"
+End Sub
+
+
+Sub Delete_Sheets()
+    'Step 1: Tell Excel what to do if Error
+On Error GoTo MyError
+    'Step 2:  Add a sheet and name it
+
+    Application.DisplayAlerts = False
+    Sheets("RawData").Delete
+    Sheets("Employee_Details").Delete
+    Application.DisplayAlerts = True
+Exit Sub
+    'Step 3: If here, an error happened; tell the user
+MyError:
+        MsgBox "Sheet Not Found.Click OK to Continue", vbInformation, "Focus Audit Macro"
+End Sub
+Sub Insert_Sheets()
+    'Step 1: Tell Excel what to do if Error
+        On Error GoTo MyError
+    'Step 2:  Add a sheet and name it
+With Sheets
+    .Add(After:=Sheets("INSTRUCTION")).Name = "RawData"
+    .Add(After:=Sheets("RawData")).Name = "Employee_Details"
+End With
+        Exit Sub
+    'Step 3: If here, an error happened; tell the user
+MyError:
+        MsgBox "There is already a sheet called that."
+End Sub
+
+
+Sub Import_Data()
+On Error GoTo Errormask
+    Sheets("RawData").Activate
+    Range("A1").Select
+            Dim wbCSV   As Workbook
+            Dim wsMstr  As Worksheet:   Set wsMstr = ThisWorkbook.Sheets("RawData")
+            '--------------------------------------------------------------------------------------------------------------------------------------------------
+            '--------------------------------------------------------------------------------------------------------------------------------------------------
+                                         'Change Path as per the need
+            Dim fPath   As String:      fPath = "C:\Power_Query_Data\"
+            '--------------------------------------------------------------------------------------------------------------------------------------------------
+            '--------------------------------------------------------------------------------------------------------------------------------------------------
+            Dim fCSV    As String
+            Application.ScreenUpdating = False '........'Speed up macro
+            fCSV = Dir(fPath & "EmployeeData.xlsx") '.........' Select file
+                    Set wbCSV = Workbooks.Open(fPath & fCSV)
+                    ActiveSheet.UsedRange.Copy wsMstr.Range("A" & Rows.Count).End(xlUp).Offset(1)
+                    wbCSV.Close False
+    Application.DisplayAlerts = False
+    Rows("1:1").Select
+    Selection.Delete Shift:=xlUp
+'ThisWorkbook.ActiveSheet.Cells.ClearFormats
+ActiveSheet.UsedRange.EntireColumn.AutoFit
+'Worksheets("RawData").Cells.NumberFormat = "General"
+Exit Sub
+Errormask:
+MsgBox "File Name - SUBMISSION_SEARCH_All is incorrect", vbInformation
+Exit Sub
+End Sub
+'2] Remove Column{B}[NationalIDNumber]
+'3] Remove Column{C}[ContactID]
+'4] Remove Column{D}[LoginID]
+Sub Delete_Column_B_C_D()
+Sheets("RawData").Activate
+    Columns("B:D").Select
+    Selection.Delete Shift:=xlToLeft
+    Range("A1").Select
+End Sub
+'5] Rename Column{C}[Title] to [Employee Name]
+Sub Change_Title_To_Employee_Name()
+Range("C1") = "Employee Name"
+End Sub
+'6] Column{G}[BirthDate] keep only date remove "00:00"
+Sub BirthDate()
+Range("D:D").NumberFormat = "[$-en-IN,1]dd/mm/yyyy;@"
+End Sub
+
+'7] Remove Column{N & O}[CurrentFlag | rowguid]
+Sub Remove_Column_CurrentFlag_rowguid()
+Sheets("RawData").Activate
+    Columns("K:L").Select
+    Selection.Delete Shift:=xlToLeft
+    Range("A1").Select
+End Sub
+
+'8] Rename Column{F}[Employee Name] Change all to upper case
+'9] Rename Column{F}[Employee Name] use trim& Clean to remove unwated space
+
+  Sub UpperCase_Employee_Name()
+    Columns("D:D").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+    Range("D1") = "Employee Name"
+    Range("D2").Select
+        ActiveCell.FormulaR1C1 = "=UPPER(TRIM(CLEAN(RC[-1])))"
+        Range("D2").Select
+  LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("D2").AutoFill Destination:=Range("D2:D" & LastRow)
+ 'PasteSpecialCode-------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Columns("C:C").Select
+    Selection.Delete Shift:=xlToLeft
+    Application.CutCopyMode = True
+End Sub
+
+'10] Column{H}[MaritalStatus] change M = Married and S = Single
+Sub MaritalStatus()
+    ActiveWorkbook.Save
+    Range("F:F").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+      Range("F1") = "Marital Status"
+    Range("F2").Select
+    ActiveCell.FormulaR1C1 = _
+        "=IF(RC[-1]=""M"",""Married"",IF(RC[-1]=""S"",""Single""))"
+    Range("F2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("F2").AutoFill Destination:=Range("F2:F" & LastRow)
+ 'PasteSpecialCode--------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Columns("E:E").Select
+    Selection.Delete Shift:=xlToLeft
+    Application.CutCopyMode = True
+End Sub
+
+'11] Column{I}[Gender] change M = Male and F = Female
+Sub Gender()
+    ActiveWorkbook.Save
+    Range("G:G").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+      Range("G1") = "Gender"
+    Range("G2").Select
+    ActiveCell.FormulaR1C1 = _
+        "=IF(RC[-1]=""M"",""Male"",IF(RC[-1]=""F"",""Female""))"
+    Range("G2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("G2").AutoFill Destination:=Range("G2:G" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Columns("F:F").Select
+    Selection.Delete Shift:=xlToLeft
+    Application.CutCopyMode = True
+End Sub
+
+'12] Insert New Column after {G} name it as [Birth Born] you need to extract Year from BirthDate Column
+Sub Birth_Born_Year()
+    ActiveWorkbook.Save
+    Range("D:D").Select
+    '----------------------------------------------------Column H Data text to column
+    Selection.TextToColumns Destination:=Range("D1"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 2), TrailingMinusNumbers:=True
+'---------------'----------------------------------------------------'----------------------------------------------------
+        Range("E:E").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+      Range("E1") = "Birth Born Year"
+    Range("E2").Select
+'----------------------------------------------------Copy Column
+    Range("E2").Select
+    ActiveCell.FormulaR1C1 = "=right(D2,4)"
+    Range("E2").Select
+    Selection.TextToColumns Destination:=Range("E2"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+ Range("E2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("E2").AutoFill Destination:=Range("E2:E" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Application.CutCopyMode = True
+End Sub
+
+'13] Insert New Column after {H} name it as [Age] you need to calculate Age of a person.
+Sub Age()
+'-------------------calculate Age---------------------------------------------
+    Range("F:F").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+     ' Range("F1") = "Age"
+    Range("F1").Select
+       ActiveCell.FormulaR1C1 = "=YEAR(NOW())"
+    Range("F1").Select
+    Selection.TextToColumns Destination:=Range("F1"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+    Range("F2").Select
+    ActiveCell.FormulaR1C1 = "=$F$1-E2"
+    Selection.TextToColumns Destination:=Range("F2"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+ Range("F2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("F2").AutoFill Destination:=Range("F2:F" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Application.CutCopyMode = True
+    Range("F1") = "Age"
+End Sub
+
+'14] Calculate the length of service for each of the employees using the column {J}[HireDate] till today.Name the Column as Length of Service
+Sub Length_of_Service()
+ActiveWorkbook.Save
+    Range("I:I").Select
+             Selection.NumberFormat = "[$-en-IN,1]dd/mm/yyyy;@"
+
+    '----------------------------------------------------Column H Data text to column
+    Selection.TextToColumns Destination:=Range("I1"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 2), TrailingMinusNumbers:=True
+'---------------'----------------------------------------------------'----------------------------------------------------
+        Range("J:J").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+      Range("J1") = "Length_of_Service"
+    Range("J2").Select
+'----------------------------------------------------Copy Column
+    Range("J2").Select
+    ActiveCell.FormulaR1C1 = "=right(I2,4)"
+    Range("J2").Select
+    Selection.TextToColumns Destination:=Range("J2"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+ Range("J2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("J2").AutoFill Destination:=Range("J2:J" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Application.CutCopyMode = True
+End Sub
+
+Sub Years_of_Service()
+    Range("K:K").Select
+    Selection.Insert Shift:=xlToRight, CopyOrigin:=xlFormatFromLeftOrAbove
+    Range("K1").Select
+       ActiveCell.FormulaR1C1 = "=YEAR(NOW())"
+    Range("K1").Select
+    Selection.TextToColumns Destination:=Range("K1"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+    Range("K2").Select
+    ActiveCell.FormulaR1C1 = "=$K$1-J2"
+    Selection.TextToColumns Destination:=Range("K2"), DataType:=xlFixedWidth, _
+        OtherChar:="-", FieldInfo:=Array(0, 1), TrailingMinusNumbers:=True
+'--------------------------------------------------------------------------------
+ Range("K2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("K2").AutoFill Destination:=Range("K2:K" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+    Application.CutCopyMode = True
+    Range("K1") = "Years_of_Service"
+
+End Sub
+
+'15] How many employees fit into the age group of 20-30,30-40,40-50 and over 50
+'Formula
+'=IF(F2>50,"50 Plus",IF(F2>40,"40-50",IF(F2>30,"31-40",IF(F2>20,"20-30"))))
+Sub Age_Group()
+Range("O1") = "Age Group"
+Range("O2").Select
+    ActiveCell.FormulaR1C1 = _
+        "=IF(RC[-9]>50,""50 Plus"",IF(RC[-9]>40,""40-50"",IF(RC[-9]>30,""31-40"",IF(RC[-9]>20,""20-30""))))"
+ Range("O2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("O2").AutoFill Destination:=Range("O2:O" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+Range("O1") = "Age Group"
+
+End Sub
+
+'16] Create a new field for the Salary Group. Group according to the following:
+'    a.Over $4000 b. 3000 to 4000 c. 2000 to 3000 d. 1000 to 2000 e. 0 to 1000
+'Formula
+'=IF(M2>4000,"4000-Plus",IF(M2>3000,"4000-3000",IF(M2>3000,"3100-4000",IF(M2>2000,"2000-3000",IF(M2>1000,"1000-2000",IF(M2<1000,"Less then 1000"))))))
+Sub Salary_Group()
+Range("P1") = "Salary Group"
+Range("P2").Select
+    ActiveCell.FormulaR1C1 = _
+        "=IF(RC[-3]>4000,""4000-Plus"",IF(RC[-3]>3000,""3000-4000"",IF(RC[-3]>3000,""3100-4000"",IF(RC[-3]>2000,""2000-3000"",IF(RC[-3]>1000,""1000-2000"",IF(RC[-3]<1000,""Less then 1000""))))))"
+ Range("P2").Select
+LastRow = Range("A" & Rows.Count).End(xlUp).Row
+Range("P2").AutoFill Destination:=Range("P2:P" & LastRow)
+ 'PasteSpecialCode---------------------------------------------------------
+Pastespecial_Code
+'--------------------------------------------------------------------------------
+Range("P1") = "Salary Group"
+End Sub
+
+Sub Pastespecial_Code()
+Range(Selection, Selection.End(xlDown)).Select
+Selection.Copy
+Selection.PasteSpecial Paste:=xlPasteValues, Operation:=xlNone, SkipBlanks _
+:=False, Transpose:=False
+Application.CutCopyMode = True
+End Sub
+
+
+'1. Create a pivot table displaying the number of employees by Salary Group
+''************************************************************************Create Pivot Table
+Sub PivotTable_EmployeesbySalaryGroup()
+
+'[Source Sheet Name][RawData]
+'[OutPut Sheet Name][Employees_Details]
+'[Pivot Table Name] [Pivot Table Employees_Salary]
+
+
+Dim DataRange As Range
+Dim Destination As Range
+Worksheets("RawData").Select
+'----------------------------------------------------------
+'Set data range for pivot table
+Set DataRange = Worksheets("RawData").Range("A1:P51")    '} Change here
+'----------------------------------------------------------
+'----------------------------------------------------------
+'Set destination for 'Pivot Table - ""
+Set Destination = Worksheets("Employee_Details").Range("A1")    '} Change this Code
+'----------------------------------------------------------
+'Create Pivot Table
+Worksheets("Employee_Details").Select
+ActiveSheet.PivotTableWizard SourceType:=xlDatabase, _
+SourceData:=DataRange, TableDestination:=Destination, TableName:="Pivot Table Employees_Salary"  'Change the  Pivot Table Name
+''--------------------------------------------------------------------------------------------------------
+    With ActiveSheet.PivotTables("Pivot Table Employees_Salary").PivotFields( _
+        "Salary Group")
+        .Orientation = xlColumnField
+        .Position = 1
+    End With
+    ActiveSheet.PivotTables("Pivot Table Employees_Salary").AddDataField _
+        ActiveSheet.PivotTables("Pivot Table Employees_Salary").PivotFields( _
+        "Salary Group"), "Count of Salary Group", xlCount
+    With ActiveSheet.PivotTables("Pivot Table Employees_Salary").PivotFields("Dept" _
+        )
+        .Orientation = xlRowField
+        .Position = 1
+    End With
+        With ActiveSheet.PivotTables("Pivot Table Employees_Salary").PivotFields( _
+        "Salary Group")
+        .Orientation = xlColumnField
+        .Position = 1
+    End With
+End Sub
+
+
+
